@@ -194,20 +194,26 @@ void statement(): {}
     <LBRACE> statement_block() <RBRACE> |
     <IF> condition() <LBRACE> statement_block() <RBRACE> <ELSE> <LBRACE> statement_block() <RBRACE> |
     <WHILE> condition() <LBRACE> statement_block() <RBRACE> |
-    <_SKIP>
+    <_SKIP> <SEMICOLON>
 }
 
-void expression(): {}
+/*void expression(): {}
 {
     (<LPAREN> expression() <RPAREN> |
     <ID> [<LPAREN> arg_list() <RPAREN>] |
     fragment()) expression_prime()
-}
+}/*
 
-void expression_prime(): {}
+/*void expression_prime(): {}
 {
    binary_arith_op() fragment() expression_prime()
    | {}
+}*/
+
+void expression(): {}
+{
+    fragment()[binary_arith_op() expression()] |
+    <LPAREN> expression() <RPAREN>
 }
 
 void binary_arith_op(): {}
@@ -218,7 +224,7 @@ void binary_arith_op(): {}
 
 void fragment(): {}
 {
-   <ID> | <INTEGER> | <TRUE> | <FALSE>
+   [<MINUS>] <ID> [<LPAREN> arg_list() <RPAREN>] | <INTEGER> | <TRUE> | <FALSE>
 }
 
 void condition(): {}
