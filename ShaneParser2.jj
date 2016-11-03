@@ -1,38 +1,38 @@
 options { JAVA_UNICODE_ESCAPE = true; }
-PARSER_BEGIN(ShaneParser3)
-public class ShaneParser3 {
+PARSER_BEGIN(ShaneParser2)
+public class ShaneParser2 {
     public static void main(String args[]) {
-    ShaneParser3 interpreter;
+    ShaneParser2 interpreter;
     if (args.length == 0) {
         System.out.println("SLP Interpreter:  Reading from standard input...");
-        interpreter = new ShaneParser3(System.in);
+        interpreter = new ShaneParser2(System.in);
     } else if (args.length == 1) {
     System.out.println("SLP Interpreter:  Reading from file "
     + args[0] + "...");
     try {
-    interpreter = new ShaneParser3(new java.io.FileInputStream(args[0]));
+    interpreter = new ShaneParser2(new java.io.FileInputStream(args[0]));
     } catch (java.io.FileNotFoundException e) {
     System.out.println("SLP Interpreter:  File " + args[0] + " not found.");
     return;
     }
     } else {
     System.out.println("SLP Interpreter:  Usage is one of:");
-    System.out.println("         java ShaneParser3 < inputfile");
+    System.out.println("         java ShaneParser2 < inputfile");
     System.out.println("OR");
-    System.out.println("         java ShaneParser3 inputfile");
+    System.out.println("         java ShaneParser2 inputfile");
     return;
     }
 
     try {
     interpreter.program();
-    System.out.println("Parsed successfully");
+    System.out.println("SLP Interpreter:  Successful parse.");
     } catch (ParseException e) {
     System.out.println(e.getMessage());
     System.out.println("SLP Interpreter:  Encountered errors during parse.");
     }
     }
 }
-PARSER_END(ShaneParser3)
+PARSER_END(ShaneParser2)
 
 
 TOKEN : {
@@ -98,7 +98,7 @@ TOKEN_MGR_DECLS :
 }
 
 SKIP : {
-    < "//" (<LETTER> | <DIGIT>)* ("\n" | "\r" | "\r\n") >
+     <"//" (~["\n","\r"])* ("\n"|"\r"|"\r\n")>
     | " "
     | "\t"
     | "\n"
@@ -131,19 +131,29 @@ void decl(): {}
     (var_decl() | const_decl())
 }
 
+void main(): {}
+{
+    <MAIN> <LBRACE>
+    decl_list()
+    statement_block()
+    <RBRACE>
+}
+
+
 void var_decl(): {}
 {
-    <VAR> <ID> <COLON> type()
+    (<VAR> <ID> <COLON> type())
 }
 
 void const_decl(): {}
 {
-    <CONST> <ID> <COLON> type() <ASSIGN> expression()
+    (<CONST> <ID> <COLON> type() <ASSIGN> expression() )
 }
+
 
 void function_list(): {}
 {
-    (function() function_list() | {} )
+    (function() function_list() |  {} )
 }
 
 void function(): {}
@@ -171,13 +181,6 @@ void nemp_parameter_list(): {}
     <ID> <COLON> type() [<COMMA> nemp_parameter_list()]
 }
 
-void main(): {}
-{
-    <MAIN> <LBRACE>
-    decl_list()
-    statement_block()
-    <RBRACE>
-}
 
 void statement_block(): {}
 {
@@ -187,25 +190,24 @@ void statement_block(): {}
 void statement(): {}
 {
     <ID> (<ASSIGN> expression() <SEMICOLON> |
-    <LPAREN> arg_list() <RPAREN> <SEMICOLON>) |
+    <LPAREN> arg_list() <RPAREN> <SEMICOLON> ) |
     <LBRACE> statement_block() <RBRACE> |
     <IF> condition() <LBRACE> statement_block() <RBRACE> <ELSE> <LBRACE> statement_block() <RBRACE> |
     <WHILE> condition() <LBRACE> statement_block() <RBRACE> |
-    <_SKIP> <SEMICOLON>
+    <_SKIP>
 }
 
 void expression(): {}
 {
 
-    (<LPAREN> (expression() <RPAREN> |
-    arg_list() <RPAREN>) |
+    (<LPAREN> expression() <RPAREN> |
+    <ID> <LPAREN> arg_list() <RPAREN> |
     fragment()) expression_prime()
 }
 
 void expression_prime(): {}
 {
-   binary_arith_op() fragment() expression_prime() |
-   {}
+   binary_arith_op() fragment() expression_prime()
 }
 
 void binary_arith_op(): {}
@@ -216,24 +218,14 @@ void binary_arith_op(): {}
 
 void fragment(): {}
 {
-    ( <ID> | <MINUS> <ID> | <INTEGER> | <TRUE> | <FALSE>) [expression()]
+    <ID> | <INTEGER> | <TRUE> | <FALSE>
 }
-
-/*void fragment_prime():{}
-{
-    expression()
-}
-
-void simp_fragment(): {}
-{
-     <ID> | <INTEGER> | <TRUE> | <FALSE> | expression()
-}*/
 
 void condition(): {}
 {
-    (<TILDE> condition() |
-    <LPAREN> condition() <RPAREN> |
-    expression() comp_op() expression()) condition_prime()
+    <TILDE> condition() condition_prime() |
+    <LPAREN> condition() <RPAREN> condition_prime() |
+    expression() comp_op() expression() condition_prime()
 }
 
 void condition_prime(): {}
@@ -242,12 +234,6 @@ void condition_prime(): {}
     {}
 }
 
-/*void simple_condition(): {}
-{
-  <TILDE> condition() |
-  <LPAREN> condition() <RPAREN> |
-  expression() comp_op() expression()
-}*/
 
 void comp_op(): {}
 {
