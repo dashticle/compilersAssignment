@@ -72,7 +72,7 @@ TOKEN : {
 TOKEN : {
     /* NUMBERS AND IDENTIFIERS */
      < #DIGIT: ["0"-"9"] >
-     | < INTEGER: (["1" - "9"])+ (<DIGIT>)* |
+     | < INTEGER: "0" | (["1" - "9"])+ (<DIGIT>)* |
                    "-" (["1" - "9"])+ (<DIGIT>)* >
      | <#LETTER: ["a"-"z"] | ["A"-"Z"]>
      | <ID: (<LETTER>)+ (<LETTER> | <DIGIT> | "_")* >
@@ -123,7 +123,7 @@ void program(): {}
 
 void decl_list(): {}
 {
-    (decl() <SEMICOLON> decl_list()) | {}
+    decl() <SEMICOLON> decl_list() | {}
 }
 
 void decl(): {}
@@ -199,15 +199,15 @@ void statement(): {}
 
 void expression(): {}
 {
-
     (<LPAREN> expression() <RPAREN> |
-    <ID> <LPAREN> arg_list() <RPAREN> |
+    <ID> [<LPAREN> arg_list() <RPAREN>] |
     fragment()) expression_prime()
 }
 
 void expression_prime(): {}
 {
    binary_arith_op() fragment() expression_prime()
+   | {}
 }
 
 void binary_arith_op(): {}
@@ -218,7 +218,7 @@ void binary_arith_op(): {}
 
 void fragment(): {}
 {
-    <ID> | <INTEGER> | <TRUE> | <FALSE>
+   <ID> | <INTEGER> | <TRUE> | <FALSE>
 }
 
 void condition(): {}
