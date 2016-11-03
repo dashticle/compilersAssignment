@@ -1,0 +1,266 @@
+options { JAVA_UNICODE_ESCAPE = true; }
+PARSER_BEGIN(ShaneParser3)
+public class ShaneParser3 {
+    public static void main(String args[]) {
+    ShaneParser3 interpreter;
+    if (args.length == 0) {
+        System.out.println("SLP Interpreter:  Reading from standard input...");
+        interpreter = new ShaneParser3(System.in);
+    } else if (args.length == 1) {
+    System.out.println("SLP Interpreter:  Reading from file "
+    + args[0] + "...");
+    try {
+    interpreter = new ShaneParser3(new java.io.FileInputStream(args[0]));
+    } catch (java.io.FileNotFoundException e) {
+    System.out.println("SLP Interpreter:  File " + args[0] + " not found.");
+    return;
+    }
+    } else {
+    System.out.println("SLP Interpreter:  Usage is one of:");
+    System.out.println("         java ShaneParser3 < inputfile");
+    System.out.println("OR");
+    System.out.println("         java ShaneParser3 inputfile");
+    return;
+    }
+
+    try {
+    interpreter.program();
+    System.out.println("Parsed successfully");
+    } catch (ParseException e) {
+    System.out.println(e.getMessage());
+    System.out.println("SLP Interpreter:  Encountered errors during parse.");
+    }
+    }
+}
+PARSER_END(ShaneParser3)
+
+
+TOKEN : {
+    /*RESERVED WORDS*/
+    < IF: "if" >
+    | < ELSE: "else" >
+    | < VAR: "var" >
+    | < CONST: "const">
+    | < RETURN: "return">
+    | < _INTEGER: "integer">
+    | < BOOLEAN: "boolean">
+    | < VOID: "void">
+    | < MAIN: "main">
+    | < WHILE: "while">
+    | < _SKIP: "skip">
+    | <TRUE: "true">
+    | <FALSE: "false">
+}
+
+TOKEN : {
+    /*OPERATORS*/
+      < ASSIGN: "=" >
+    | < GT: ">" >
+    | < LT: "<" >
+    | < EQ: "==" >
+    | < LE: "<=" >
+    | < GE: ">=" >
+    | < NE: "!=" >
+    | < TILDE: "~" >
+    | < COLON: ":" >
+    | < PLUS: "+" >
+    | < MINUS: "-" >
+    | < SC_OR: "||" >
+    | < SC_AND: "&&" >
+}
+
+TOKEN : {
+    /* NUMBERS AND IDENTIFIERS */
+     < #DIGIT: ["0"-"9"] >
+     | < INTEGER: (["1" - "9"])+ (<DIGIT>)* |
+                   "-" (["1" - "9"])+ (<DIGIT>)* >
+     | <#LETTER: ["a"-"z"] | ["A"-"Z"]>
+     | <ID: (<LETTER>)+ (<LETTER> | <DIGIT> | "_")* >
+
+}
+
+TOKEN : {
+    /* SEPARATORS */
+      < LPAREN: "(" >
+    | < RPAREN: ")" >
+    | < LBRACE: "{" >
+    | < RBRACE: "}" >
+    | < LBRACKET: "[" >
+    | < RBRACKET: "]" >
+    | < SEMICOLON: ";" >
+    | < COMMA: "," >
+    | < DOT: "." >
+}
+
+TOKEN_MGR_DECLS :
+{
+    static int commentNesting = 0;
+}
+
+SKIP : {
+    < "//" (<LETTER> | <DIGIT>)* ("\n" | "\r" | "\r\n") >
+    | " "
+    | "\t"
+    | "\n"
+    |"/*" { commentNesting++; } : IN_COMMENT
+}
+
+<IN_COMMENT> SKIP :
+{
+    "/*" { commentNesting++; }
+    | "*/" { commentNesting--;
+    if (commentNesting == 0)
+        SwitchTo(DEFAULT);
+    }
+    | <~[]>
+}
+
+void program(): {}
+{
+    (decl_list() function_list() main())
+    <EOF>
+}
+
+void decl_list(): {}
+{
+    (decl() <SEMICOLON> decl_list()) | {}
+}
+
+void decl(): {}
+{
+    (var_decl() | const_decl())
+}
+
+void var_decl(): {}
+{
+    <VAR> <ID> <COLON> type()
+}
+
+void const_decl(): {}
+{
+    <CONST> <ID> <COLON> type() <ASSIGN> expression()
+}
+
+void function_list(): {}
+{
+    (function() function_list() | {} )
+}
+
+void function(): {}
+{
+    type() <ID> <LPAREN> parameter_list() <RPAREN>
+    <LBRACE>
+        decl_list()
+        statement_block()
+        <RETURN> <LPAREN> (expression() | {}) <RPAREN> <SEMICOLON>
+    <RBRACE>
+}
+
+void type(): {}
+{
+    <_INTEGER> | <BOOLEAN> | <VOID>
+}
+
+void parameter_list(): {}
+{
+    nemp_parameter_list() | {}
+}
+
+void nemp_parameter_list(): {}
+{
+    <ID> <COLON> type() [<COMMA> nemp_parameter_list()]
+}
+
+void main(): {}
+{
+    <MAIN> <LBRACE>
+    decl_list()
+    statement_block()
+    <RBRACE>
+}
+
+void statement_block(): {}
+{
+    statement() statement_block() | {}
+}
+
+void statement(): {}
+{
+    <ID> (<ASSIGN> expression() <SEMICOLON> |
+    <LPAREN> arg_list() <RPAREN> <SEMICOLON>) |
+    <LBRACE> statement_block() <RBRACE> |
+    <IF> condition() <LBRACE> statement_block() <RBRACE> <ELSE> <LBRACE> statement_block() <RBRACE> |
+    <WHILE> condition() <LBRACE> statement_block() <RBRACE> |
+    <_SKIP> <SEMICOLON>
+}
+
+void expression(): {}
+{
+
+    (<LPAREN> (expression() <RPAREN> |
+    arg_list() <RPAREN>) |
+    fragment()) expression_prime()
+}
+
+void expression_prime(): {}
+{
+   binary_arith_op() fragment() expression_prime() |
+   {}
+}
+
+void binary_arith_op(): {}
+{
+    <PLUS> | <MINUS>
+}
+
+
+void fragment(): {}
+{
+    ( <ID> | <MINUS> <ID> | <INTEGER> | <TRUE> | <FALSE>) [expression()]
+}
+
+/*void fragment_prime():{}
+{
+    expression()
+}
+
+void simp_fragment(): {}
+{
+     <ID> | <INTEGER> | <TRUE> | <FALSE> | expression()
+}*/
+
+void condition(): {}
+{
+    (<TILDE> condition() |
+    <LPAREN> condition() <RPAREN> |
+    expression() comp_op() expression()) condition_prime()
+}
+
+void condition_prime(): {}
+{
+    ( <SC_OR> | <SC_AND> ) condition() |
+    {}
+}
+
+/*void simple_condition(): {}
+{
+  <TILDE> condition() |
+  <LPAREN> condition() <RPAREN> |
+  expression() comp_op() expression()
+}*/
+
+void comp_op(): {}
+{
+    <EQ> | <NE> | <GT> | <GE> | <LE> | <LT>
+}
+
+void arg_list(): {}
+{
+    nemp_arg_list() | {}
+}
+
+void nemp_arg_list(): {}
+{
+    <ID> [<COMMA> nemp_arg_list()]
+}
+
